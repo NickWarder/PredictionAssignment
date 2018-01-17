@@ -1,0 +1,97 @@
+---
+title: "Machine Learning Submission"
+author: "Warder"
+date: "January 17, 2018"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(caret)
+require(randomForest)
+require(rpart)
+```
+
+## Executive Summary
+On analysis of the data provided by devices such as the Jawbone Up, Nike FuelBand, and FitBit, we have determined that the best model for this data is a Random Forest, with an expected accuracy of 99.35% and therefore an out of sample error anticipated at 0.65%. Based upon that, we predict the following for activities:
+
+ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
+ B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
+Levels: A B C D E
+
+## Data Background and Loading
+The data relevant to our predictive analysis is the classe variable, which defines the manner in which exercise was performed.
+
+Note that this code is to be executed in the same folder as the data.
+```{r echo=TRUE}
+#Loading the data
+trainingRawData <- read.csv("pml-training.csv", na.strings=c("NA",""))
+testingRawData <- read.csv("pml-testing.csv", na.strings=c("NA",""))
+
+#Setting a seed so this can be reproduced
+set.seed(213)
+```
+## Data Analysis
+#Data Preparation
+First, we will split the data out to a 60-40 balance of training and testing data, this is based on industry standards.
+```{r echo=TRUE}
+inTraining <- createDataPartition(y=trainingRawData$classe,p=0.6,list=FALSE)
+trainingData <- trainingRawData[inTraining,]
+testingData <- trainingRawData[-inTraining,]
+```
+#Cross Validation
+```{r echo=TRUE}
+#Ensure the size is the same
+dim(trainingData)
+dim(testingData)
+```
+
+#Data Cleaning
+```{r echo=TRUE}
+#Eliminate  Metadata observed following the creation of Test and Training Sets.
+trainingData <- trainingData[,-c(1:7)]
+testingData <- testingData[,-c(1:7)]
+#Review of the data reveals there are a lot of NAs in the data, so we eliminate this data. Looks much better after this.
+trainingData <- trainingData[,colSums(is.na(trainingData)) == 0]
+testingData <- testingData[,colSums(is.na(testingData)) == 0]
+```
+
+#Model Creation
+```{r echo=TRUE}
+#Random Forest
+modelForest <- randomForest(classe~.,data=trainingData)
+predict <- predict(modelForest,testingData)
+confusionMatrix <- confusionMatrix(predict,testingData$classe)
+confusionMatrix
+
+#Tree
+modelTree <- rpart(classe~.,data=trainingData,method="class")
+predict <- predict(modelTree,testingData,type="class")
+confusionMatrix <- confusionMatrix(predict,testingData$classe)
+confusionMatrix
+```
+
+#Choices made
+1. 60-40 was chosen as a reasonable split based on industry standards for training vs testing data
+2. Forest and Tree models were chosen as good well-understood models to assess this data.
+3. A seed was chosen so that this could be reproducibly processed.
+
+## Predictions
+- Predict 20 different test cases
+```{r echo=TRUE}
+predictions <- predict(modelForest, testingRawData,type="class")
+predictions
+```
+
+## Conclusion and Out of Sample Error
+Based upon the data analysis, the Random Forest Model is most appropriate for this data. We expect an out of sample error of 0.65% with the Random Forest Model, as compared to an out of sample error of 22.39% with the Tree Model, based on the accuracies that have been determined.
+
+Finally, our predictions are as per below. Note that
+A = Performed according to specification
+B = Throwing elbows to the front
+C = Lifting the dumbbell halfway
+D = Lowering the dumbbell halfway
+E = Throwing hips to the front
+```{r echo=TRUE}
+predictions <- predict(modelForest, testingRawData,type="class")
+predictions
+```
